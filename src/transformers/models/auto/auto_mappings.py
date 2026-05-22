@@ -38,6 +38,7 @@ CONFIG_MAPPING_NAMES = OrderedDict(
         ("arcee", "ArceeConfig"),
         ("aria", "AriaConfig"),
         ("aria_text", "AriaTextConfig"),
+        ("autocompressor", "AutoCompressorConfig"),
         ("audio-spectrogram-transformer", "ASTConfig"),
         ("audioflamingo3", "AudioFlamingo3Config"),
         ("audioflamingo3_encoder", "AudioFlamingo3EncoderConfig"),

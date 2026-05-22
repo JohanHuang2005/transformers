@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from .apertus import *
     from .arcee import *
     from .aria import *
+    from .autocompressor import *
     from .audio_spectrogram_transformer import *
     from .audioflamingo3 import *
     from .auto import *

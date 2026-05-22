@@ -401,6 +401,13 @@ class AutoConfig:
                 )
                 config_dict["model_type"] = "ministral"
 
+            # Hub checkpoints for AutoCompressor still declare model_type=llama
+            if config_dict["model_type"] == "llama" and "summary_length" in config_dict:
+                logger.info(
+                    "Detected llama config with summary_length, treating as autocompressor for AutoCompressor compatibility."
+                )
+                config_dict["model_type"] = "autocompressor"
+
             try:
                 config_class = CONFIG_MAPPING[config_dict["model_type"]]
             except KeyError:

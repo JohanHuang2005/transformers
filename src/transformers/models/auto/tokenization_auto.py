@@ -93,6 +93,7 @@ TOKENIZER_MAPPING_NAMES = OrderedDict[str, str | None](
         ("clip", "CLIPTokenizer" if is_tokenizers_available() else None),
         ("clipseg", "CLIPTokenizer" if is_tokenizers_available() else None),
         ("clvp", "ClvpTokenizer"),
+        ("autocompressor", "LlamaTokenizer" if is_tokenizers_available() else None),
         ("code_llama", "CodeLlamaTokenizer" if is_tokenizers_available() else None),
         ("codegen", "GPT2Tokenizer" if is_tokenizers_available() else None),
         ("cohere", "CohereTokenizer" if is_tokenizers_available() else None),
