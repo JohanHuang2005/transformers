@@ -154,6 +154,43 @@ class AutoCompressorForCausalLM(LlamaForCausalLM):
             return None
         return {"past_key_values": past_key_values, "soft_prompt": soft_prompt}
 
+    def _forward_standard_causal_lm(
+        self,
+        input_ids: torch.LongTensor | None = None,
+        attention_mask: torch.Tensor | None = None,
+        position_ids: torch.LongTensor | None = None,
+        past_key_values: Cache | None = None,
+        inputs_embeds: torch.FloatTensor | None = None,
+        labels: torch.LongTensor | None = None,
+        use_cache: bool | None = None,
+        logits_to_keep: int | torch.Tensor = 0,
+        **kwargs: Unpack[TransformersKwargs],
+    ) -> AutoCompressorCausalLMOutputWithPast:
+        # Do not call super().forward(): modular conversion inlines Llama and breaks MRO.
+        outputs = self.model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            position_ids=position_ids,
+            past_key_values=past_key_values,
+            inputs_embeds=inputs_embeds,
+            use_cache=use_cache,
+            **kwargs,
+        )
+        hidden_states = outputs.last_hidden_state
+        slice_indices = slice(-logits_to_keep, None) if isinstance(logits_to_keep, int) else logits_to_keep
+        logits = self.lm_head(hidden_states[:, slice_indices, :])
+        loss = None
+        if labels is not None:
+            loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
+        return AutoCompressorCausalLMOutputWithPast(
+            loss=loss,
+            logits=logits,
+            past_key_values=outputs.past_key_values,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions,
+            soft_prompt=None,
+        )
+
     def _forward_segment(
         self,
         soft_prompt: torch.Tensor,
@@ -307,7 +344,7 @@ class AutoCompressorForCausalLM(LlamaForCausalLM):
                 full input length when not provided.
         """
         if self.config.summary_length == 0:
-            outputs: CausalLMOutputWithPast = super().forward(
+            return self._forward_standard_causal_lm(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 position_ids=position_ids,
@@ -318,14 +355,6 @@ class AutoCompressorForCausalLM(LlamaForCausalLM):
                 logits_to_keep=logits_to_keep,
                 **kwargs,
             )
-            return AutoCompressorCausalLMOutputWithPast(
-                loss=outputs.loss,
-                logits=outputs.logits,
-                past_key_values=outputs.past_key_values,
-                hidden_states=outputs.hidden_states,
-                attentions=outputs.attentions,
-                soft_prompt=None,
-            )
 
         uses_autocompressor_path = (
             output_soft_prompt
@@ -334,7 +363,7 @@ class AutoCompressorForCausalLM(LlamaForCausalLM):
             or isinstance(past_key_values, dict)
         )
         if not uses_autocompressor_path:
-            outputs = super().forward(
+            return self._forward_standard_causal_lm(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 position_ids=position_ids,
@@ -344,14 +373,6 @@ class AutoCompressorForCausalLM(LlamaForCausalLM):
                 use_cache=use_cache,
                 logits_to_keep=logits_to_keep,
                 **kwargs,
-            )
-            return AutoCompressorCausalLMOutputWithPast(
-                loss=outputs.loss,
-                logits=outputs.logits,
-                past_key_values=outputs.past_key_values,
-                hidden_states=outputs.hidden_states,
-                attentions=outputs.attentions,
-                soft_prompt=None,
             )
 
         if input_ids is not None and inputs_embeds is not None:

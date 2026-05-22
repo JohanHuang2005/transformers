@@ -74,6 +74,9 @@ Full 7B smoke test (requires downloaded weights + GPU):
 
 ```bash
 export HF_HOME=/path/to/hf/cache
+# Avoid Hub network calls during .bin load (local cache only):
+export HF_HUB_OFFLINE=1
+export DISABLE_SAFETENSORS_CONVERSION=1
 python scripts/verify_autocompressor_7b_official.py
 ```
 
@@ -107,11 +110,13 @@ Hub 上 checkpoint 的 `config.json` 仍为 `model_type: "llama"`。已在 `Auto
 | 单元测试 | `python -m unittest tests.models.autocompressor.test_modeling_autocompressor -v` | Config / Auto 映射 / 压缩 forward / generate |
 | 7B 官方示例 | `python scripts/verify_autocompressor_7b_official.py` | 660→50 压缩 + Joe Biden / Donald Trump 生成 |
 
-推荐环境变量：
+推荐环境变量（权重已下载到本地时，避免联网卡住）：
 
 ```bash
 unset OMP_NUM_THREADS MKL_NUM_THREADS
 export HF_HOME=/path/to/hf/cache
-# 国内镜像（可选）
+export HF_HUB_OFFLINE=1
+export DISABLE_SAFETENSORS_CONVERSION=1
+# 国内镜像（首次下载时可选）
 export HF_ENDPOINT=https://hf-mirror.com
 ```

@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
 """Official task 1.2 validation snippet (princeton-nlp/AutoCompressor-Llama-2-7b-6k)."""
+import os
+
+# Use local cache only; avoid background safetensors conversion that hits the Hub.
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("DISABLE_SAFETENSORS_CONVERSION", "1")
+
 import torch
 from transformers import AutoTokenizer
 from transformers.models.autocompressor.configuration_autocompressor import AutoCompressorConfig
 from transformers.models.autocompressor.modeling_autocompressor import AutoCompressorForCausalLM
 
 MODEL_ID = "princeton-nlp/AutoCompressor-Llama-2-7b-6k"
+LOCAL_KWARGS = {"local_files_only": True, "use_safetensors": False}
 
-config = AutoCompressorConfig.from_pretrained(MODEL_ID)
+config = AutoCompressorConfig.from_pretrained(MODEL_ID, **LOCAL_KWARGS)
 model = AutoCompressorForCausalLM.from_pretrained(
-    MODEL_ID, config=config, torch_dtype=torch.bfloat16
+    MODEL_ID, config=config, torch_dtype=torch.bfloat16, **LOCAL_KWARGS
 ).eval().cuda()
-tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, **LOCAL_KWARGS)
 
 prompt = 'The first name of the current US president is "'
 prompt_tokens = tokenizer(prompt, add_special_tokens=False, return_tensors="pt").input_ids.cuda()
