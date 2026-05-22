@@ -39,7 +39,13 @@ if TYPE_CHECKING:
 if is_torch_available():
     import torch
     import torch.distributed.checkpoint as dcp
-    from torch.distributed.checkpoint.hf_storage import HuggingFaceStorageWriter
+    try:
+        from torch.distributed.checkpoint.hf_storage import HuggingFaceStorageWriter
+    except ImportError:
+        try:
+            from torch.distributed.checkpoint import HuggingFaceStorageWriter
+        except ImportError:
+            HuggingFaceStorageWriter = None
     from torch.distributed.checkpoint.state_dict import (
         get_model_state_dict,
         get_optimizer_state_dict,
@@ -205,6 +211,12 @@ def save_model_checkpoint_distributed(model, checkpoint_dir: str) -> None:
     gate||up MoE weights) are replicated to a full tensor on every rank
     before the save, otherwise DCP cannot encode that placement.
     """
+    if HuggingFaceStorageWriter is None:
+        raise ImportError(
+            "HuggingFaceStorageWriter is unavailable in this PyTorch build. "
+            "Upgrade PyTorch or use a checkpoint save path that does not rely on distributed checkpoint consolidation."
+        )
+
     state_dict = get_model_state_dict(model)
     for key, value in list(state_dict.items()):
         if (
